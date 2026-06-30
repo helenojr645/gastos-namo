@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gastos">
+<meta name="theme-color" content="#080c18">
+<title>Gastos</title>
+<link rel="apple-touch-icon" id="ati">
+<script>
+(function(){
+  try{
+    var c=document.createElement('canvas'); c.width=c.height=180;
+    var x=c.getContext('2d');
+    var g=x.createLinearGradient(0,0,180,180);
+    g.addColorStop(0,'#0d1e42'); g.addColorStop(1,'#1661b8');
+    x.fillStyle=g; x.fillRect(0,0,180,180);
+    x.fillStyle='rgba(255,255,255,0.1)';
+    x.beginPath(); x.arc(160,20,90,0,Math.PI*2); x.fill();
+    x.fillStyle='#ffffff'; x.font='bold 90px system-ui,sans-serif';
+    x.textAlign='center'; x.textBaseline='middle'; x.fillText('G',90,96);
+    document.getElementById('ati').href=c.toDataURL('image/png');
+  }catch(e){}
+})();
+</script>
+<style>
+:root {
+  --bg:     #080c18;
+  --glass:  rgba(255,255,255,0.05);
+  --glass-b:rgba(255,255,255,0.10);
+  --blue:   #1661b8;
+  --blue-l: #2478d4;
+  --purple: #6b21e8;
+  --green:  #00c896;
+  --red:    #ff4d6d;
+  --orange: #ff9500;
+  --text:   #eef2ff;
+  --muted:  rgba(238,242,255,0.45);
+  --tab-h:  68px;
+  --sab:    env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow-x:hidden}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;
+  min-height:100vh;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 10%,rgba(22,97,184,.18) 0%,transparent 100%),
+    radial-gradient(ellipse 50% 40% at 85% 85%,rgba(0,200,150,.08) 0%,transparent 100%),
+    radial-gradient(ellipse 40% 60% at 50% 50%,rgba(107,33,232,.06) 0%,transparent 100%);
+}
+.app{position:relative;z-index:1;max-width:480px;margin:0 auto;padding-bottom:calc(var(--tab-h) + var(--sab) + 8px)}
+
+/* header */
+.hdr{padding:52px 20px 0;display:flex;align-items:center;justify-content:space-between}
+.hdr-title{font-size:14px;font-weight:700;letter-spacing:.5px;color:var(--muted)}
+.hdr-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);box-shadow:0 0 8px currentColor;transition:background .3s}
+.hdr-right{display:flex;align-items:center;gap:12px}
+.btn-refresh{background:none;border:none;padding:4px;cursor:pointer;color:var(--muted);display:flex;align-items:center;transition:color .2s;-webkit-tap-highlight-color:transparent}
+.btn-refresh:active{color:#fff}
+.btn-refresh svg{width:18px;height:18px;transition:transform .5s}
+.btn-refresh.spinning svg{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* tabs */
+.tab-s{display:none;padding:14px 16px 0}
+.tab-s.on{display:block}
+
+/* card */
+.card{
+  background:var(--glass);border:1px solid var(--glass-b);border-radius:22px;
+  padding:20px;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);margin-bottom:12px;
+}
+.card-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
+
+/* month nav */
+.m-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.m-nav-c{text-align:center;flex:1;padding:0 8px}
+.m-nav-t{font-size:20px;font-weight:700;letter-spacing:-.3px}
+.m-nav-s{font-size:11px;color:var(--muted);margin-top:3px}
+.nav-btn{
+  width:40px;height:40px;border-radius:50%;border:1px solid var(--glass-b);
+  background:var(--glass);color:var(--text);font-size:22px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s,transform .1s;flex-shrink:0;
+}
+.nav-btn:active{background:rgba(255,255,255,.12);transform:scale(.9)}
+.nav-btn:disabled{opacity:.25;cursor:default}
+
+/* summary grid */
+.s-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.s-item{background:var(--glass);border:1px solid var(--glass-b);border-radius:18px;padding:16px}
+.s-item.wide{grid-column:1/-1}
+.s-item .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.s-item .val{font-size:18px;font-weight:700}
+.s-item.pos{border-color:rgba(0,200,150,.3);background:rgba(0,200,150,.07)}
+.s-item.pos .val{color:var(--green)}
+.s-item.neg{border-color:rgba(255,77,109,.3);background:rgba(255,77,109,.07)}
+.s-item.neg .val{color:var(--red)}
+
+/* pie */
+.chart-wrap{display:flex;align-items:center;gap:20px}
+.chart-legend{flex:1}
+.leg-item{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.leg-lbl{font-size:12px;color:var(--muted);margin-bottom:1px}
+.leg-val{font-size:14px;font-weight:600}
+
+/* progress */
+.prog-hdr{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:8px}
+.prog-bar{height:7px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.comp{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+.badge{padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600}
+.badge.up{background:rgba(255,77,109,.18);color:var(--red)}
+.badge.dn{background:rgba(0,200,150,.18);color:var(--green)}
+.badge.eq{background:rgba(255,255,255,.1);color:var(--muted)}
+
+/* historico */
+.h-item{
+  background:var(--glass);border:1px solid var(--glass-b);border-radius:18px;
+  padding:16px;margin-bottom:10px;cursor:pointer;transition:border-color .2s,transform .1s;
+}
+.h-item:active{transform:scale(.99)}
+.h-item.editing{border-color:rgba(36,120,212,.45);background:rgba(22,97,184,.06)}
+.h-hdr{display:flex;justify-content:space-between;align-items:flex-start}
+.h-mes{font-size:16px;font-weight:600}
+.h-saldo{font-size:16px;font-weight:700}
+.h-saldo.pos{color:var(--green)}
+.h-saldo.neg{color:var(--red)}
+.h-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.h-cell .d-lbl{font-size:10px;color:var(--muted)}
+.h-cell .d-val{font-size:13px;font-weight:600;margin-top:2px}
+.new-badge{
+  font-size:10px;background:rgba(22,97,184,.25);color:var(--blue-l);
+  padding:2px 7px;border-radius:6px;font-weight:600;margin-left:6px;vertical-align:middle;
+}
+
+/* edit form */
+.e-form{display:none;margin-top:14px;border-top:1px solid rgba(255,255,255,.07);padding-top:14px}
+.e-form.open{display:block}
+.f-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.f-row label{font-size:13px;color:var(--muted);width:86px;flex-shrink:0}
+.f-row input{
+  flex:1;background:rgba(255,255,255,.07);border:1px solid var(--glass-b);
+  border-radius:12px;padding:11px 13px;color:var(--text);font-size:15px;
+  outline:none;transition:border-color .2s;-webkit-appearance:none;
+}
+.f-row input:focus{border-color:var(--blue-l)}
+
+/* buttons */
+.btn{
+  width:100%;padding:14px;border-radius:14px;border:none;
+  font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s;
+}
+.btn:active{opacity:.85;transform:scale(.98)}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue-l));color:#fff;margin-top:4px}
+.btn-ghost{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid var(--glass-b);margin-top:8px;font-size:14px}
+
+/* config */
+.cfg-sep{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px}
+.cfg-sep:first-child{margin-top:0}
+.fixo-row{display:flex;gap:8px;margin-bottom:8px}
+.fixo-row input{
+  background:rgba(255,255,255,.07);border:1px solid var(--glass-b);
+  border-radius:11px;padding:10px 12px;color:var(--text);font-size:14px;
+  outline:none;-webkit-appearance:none;
+}
+.fixo-row input:first-child{flex:2}
+.fixo-row input:nth-child(2){flex:1}
+.fixo-row input:focus{border-color:var(--blue-l)}
+.btn-rm{
+  width:36px;height:36px;border-radius:10px;flex-shrink:0;align-self:center;
+  border:1px solid rgba(255,77,109,.25);background:rgba(255,77,109,.08);
+  color:var(--red);font-size:20px;cursor:pointer;
+}
+.btn-add{
+  display:flex;align-items:center;gap:7px;width:100%;
+  background:none;border:1px dashed rgba(255,255,255,.15);
+  color:var(--muted);border-radius:11px;padding:10px 14px;font-size:13px;
+  cursor:pointer;transition:border-color .2s,color .2s;margin-bottom:8px;
+}
+.btn-add:hover{border-color:var(--blue);color:var(--blue-l)}
+
+/* tab bar */
+.tab-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  height:calc(var(--tab-h) + var(--sab));
+  padding-bottom:var(--sab);padding-top:8px;
+  background:rgba(8,12,24,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-top:1px solid rgba(255,255,255,.07);display:flex;z-index:100;
+}
+.tab-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  cursor:pointer;border:none;background:none;color:var(--muted);padding:6px 0;transition:color .2s;
+}
+.tab-btn.on{color:var(--blue-l)}
+.tab-btn svg{width:22px;height:22px;stroke-width:1.6}
+.tab-btn span{font-size:10px;font-weight:500;letter-spacing:.2px}
+
+/* loader */
+.loader{
+  display:none;position:fixed;inset:0;
+  background:rgba(8,12,24,.7);backdrop-filter:blur(6px);
+  z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:14px;
+}
+.loader.on{display:flex}
+.spin{
+  width:38px;height:38px;border-radius:50%;
+  border:3px solid rgba(255,255,255,.08);border-top-color:var(--blue-l);
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* toast */
+.toast{
+  position:fixed;bottom:calc(var(--tab-h) + var(--sab) + 14px);left:50%;
+  transform:translateX(-50%) translateY(14px);
+  padding:11px 20px;border-radius:50px;font-size:14px;font-weight:500;
+  z-index:300;opacity:0;transition:opacity .25s,transform .25s;
+  white-space:nowrap;backdrop-filter:blur(12px);pointer-events:none;
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{background:rgba(0,200,150,.9);color:#fff}
+.toast.err{background:rgba(255,77,109,.9);color:#fff}
+.toast.inf{background:rgba(22,97,184,.9);color:#fff}
+
+.empty{text-align:center;padding:48px 24px;color:var(--muted)}
+.empty .ico{font-size:36px;margin-bottom:12px}
+
+@media(max-width:380px){
+  .s-item .val{font-size:15px}
+  .h-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="spin"></div>
+  <span style="font-size:13px;color:var(--muted)">Carregando...</span>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="app">
+  <div class="hdr">
+    <span class="hdr-title">CONTROLE DE GASTOS</span>
+    <div class="hdr-right">
+      <button class="btn-refresh" id="btn-refresh" onclick="refresh()" title="Atualizar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+      </button>
+      <div class="hdr-dot" id="dot"></div>
+    </div>
+  </div>
+
+  <!-- RESUMO -->
+  <section class="tab-s on" id="s-resumo">
+    <div style="margin-top:18px">
+      <div class="m-nav">
+        <button class="nav-btn" id="btn-prev" onclick="navMes(-1)">&#8249;</button>
+        <div class="m-nav-c">
+          <div class="m-nav-t" id="r-titulo">—</div>
+          <div class="m-nav-s" id="r-sub"></div>
+        </div>
+        <button class="nav-btn" id="btn-next" onclick="navMes(1)">&#8250;</button>
+      </div>
+
+      <div class="s-grid">
+        <div class="s-item"><div class="lbl">Salário</div><div class="val" id="r-sal">R$ 0</div></div>
+        <div class="s-item"><div class="lbl">Fixos + Invest</div><div class="val" id="r-fix">R$ 0</div></div>
+        <div class="s-item"><div class="lbl">Total Faturas</div><div class="val" id="r-fat">R$ 0</div></div>
+        <div class="s-item wide" id="r-saldo-card"><div class="lbl">Saldo Livre</div><div class="val" id="r-saldo">R$ 0</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-lbl">Distribuição</div>
+        <div class="chart-wrap">
+          <svg id="pie" width="140" height="140" viewBox="0 0 140 140" style="flex-shrink:0"></svg>
+          <div class="chart-legend">
+            <div class="leg-item">
+              <div class="leg-dot" style="background:#1661b8"></div>
+              <div><div class="leg-lbl">Fixos</div><div class="leg-val" id="l-fix">R$ 0</div></div>
+            </div>
+            <div class="leg-item">
+              <div class="leg-dot" style="background:#6b21e8"></div>
+              <div><div class="leg-lbl">Faturas</div><div class="leg-val" id="l-fat">R$ 0</div></div>
+            </div>
+            <div class="leg-item" style="margin-bottom:0">
+              <div class="leg-dot" style="background:#00c896"></div>
+              <div><div class="leg-lbl">Saldo livre</div><div class="leg-val" id="l-saldo">R$ 0</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-lbl">Comprometimento do salário</div>
+        <div class="prog-hdr"><span>Gastos totais</span><span id="prog-pct">0%</span></div>
+        <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="comp" id="comp"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-lbl">Faturas</div>
+        <div class="s-grid" style="margin-bottom:0">
+          <div class="s-item"><div class="lbl" id="lbl-f1">Fatura 1</div><div class="val" id="r-f1">R$ 0</div></div>
+          <div class="s-item"><div class="lbl" id="lbl-f2">Fatura 2</div><div class="val" id="r-f2">R$ 0</div></div>
+          <div class="s-item"><div class="lbl" id="lbl-f3">Fatura 3</div><div class="val" id="r-f3">R$ 0</div></div>
+          <div class="s-item"><div class="lbl" id="lbl-f4">Fatura 4</div><div class="val" id="r-f4">R$ 0</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTÓRICO -->
+  <section class="tab-s" id="s-hist">
+    <div style="margin-top:18px;display:flex;justify-content:flex-end;padding:0 0 4px">
+      <button class="btn-add" style="width:auto;padding:8px 18px;margin-bottom:0" onclick="addProximoMes()">+ Novo mês</button>
+    </div>
+    <div id="hist-list"></div>
+  </section>
+
+  <!-- CONFIG -->
+  <section class="tab-s" id="s-cfg">
+    <div class="card" style="margin-top:18px">
+      <div class="cfg-sep">Salário</div>
+      <div class="f-row"><label>Dia 15</label><input type="number" id="c-sal15" placeholder="0,00" inputmode="decimal"></div>
+      <div class="f-row"><label>Dia 30</label><input type="number" id="c-sal30" placeholder="0,00" inputmode="decimal"></div>
+
+      <div class="cfg-sep">Nomes das Faturas</div>
+      <div class="f-row"><label>Fatura 1</label><input type="text" id="c-fat1" placeholder="ex: Nubank"></div>
+      <div class="f-row"><label>Fatura 2</label><input type="text" id="c-fat2" placeholder="ex: XP"></div>
+      <div class="f-row"><label>Fatura 3</label><input type="text" id="c-fat3" placeholder="ex: BTG"></div>
+      <div class="f-row"><label>Fatura 4</label><input type="text" id="c-fat4" placeholder="ex: PIX/Débito"></div>
+
+      <div class="cfg-sep">Gastos Fixos</div>
+      <div id="fixos-list"></div>
+      <button class="btn-add" onclick="addFixo()">+ Adicionar fixo</button>
+
+      <div class="cfg-sep">Meta de Investimento</div>
+      <div class="f-row"><label>Valor</label><input type="number" id="c-meta" placeholder="0,00" inputmode="decimal"></div>
+
+      <button class="btn btn-primary" onclick="saveConfig()">Salvar Configuração</button>
+    </div>
+    <p style="text-align:center;color:var(--muted);font-size:12px;padding:12px 20px 20px">
+      Salário e fixos são aplicados automaticamente ao salvar qualquer mês.
+    </p>
+  </section>
+</div>
+
+<nav class="tab-bar">
+  <button class="tab-btn on" id="tb-resumo" onclick="go('resumo')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+      <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+      <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+      <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+    </svg>
+    <span>Resumo</span>
+  </button>
+  <button class="tab-btn" id="tb-hist" onclick="go('hist')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path d="M3 6h18M3 10h18M3 14h18M3 18h10"/>
+    </svg>
+    <span>Histórico</span>
+  </button>
+  <button class="tab-btn" id="tb-cfg" onclick="go('cfg')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+    </svg>
+    <span>Config</span>
+  </button>
+</nav>
+
+<script>
+const API  = 'https://script.google.com/macros/s/AKfycbwBlFZHl223Epm4_fPwXa5YBl0MdVxOkS5OWwzac3tiA4eDjL3fZEs21hICuGQHHbOGjg/exec';
+const MES  = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const MESF = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const NOMES_PADRAO = ['Nubank','XP','BTG','PIX/Débito'];
+
+var D = {
+  hist: [],
+  cfg: { salario15:0, salario30:0, fixos:[], metaInvestimento:0, salarioTotal:0, totalFixos:0, nomesFatura:NOMES_PADRAO.slice() },
+  idx: 0,
+  openEdit: null
+};
+
+function R(n){ return 'R$ '+Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function mesAnoAtual(){ var d=new Date(); return MES[d.getMonth()]+'/'+d.getFullYear(); }
+function toDate(s){ var p=String(s).split('/'); var i=MES.indexOf(p[0]); return new Date(+p[1],i>=0?i:0,1); }
+function full(s){ var p=String(s).split('/'); var i=MES.indexOf(p[0]); return (i>=0?MESF[i]:p[0])+' de '+p[1]; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function nomes(){ return D.cfg.nomesFatura || NOMES_PADRAO; }
+
+async function callAPI(action, data){
+  var u = API+'?action='+action;
+  if(data) u += '&data='+encodeURIComponent(JSON.stringify(data));
+  var r = await fetch(u);
+  return r.json();
+}
+
+function parseMesAno(s){
+  s = String(s);
+  var p = s.split('/');
+  if(p.length===2 && MES.indexOf(p[0])>=0) return s;
+  var d = new Date(s);
+  if(!isNaN(d.getTime())) return MES[d.getUTCMonth()]+'/'+d.getUTCFullYear();
+  return s;
+}
+
+function stripAcc(s){
+  var f='áàãâäéèêëíìîïóòõôöúùûüýçñ', t='aaaaaeeeeiiiioooooouuuuycn', o='';
+  s = String(s).toLowerCase().trim();
+  for(var i=0;i<s.length;i++){ var x=f.indexOf(s[i]); o+=x>=0?t[x]:s[i]; }
+  return o;
+}
+
+function fixCfg(cfg){
+  if(!cfg) return cfg;
+  var fixos = cfg.fixos||[], clean=[];
+  for(var i=0;i<fixos.length;i++){
+    var f=fixos[i], lbl=stripAcc(f.descricao||'');
+    if(lbl.includes('salario dia 15')||lbl==='salario 15'){ cfg.salario15=f.valor; }
+    else if(lbl.includes('salario dia 30')||lbl==='salario 30'){ cfg.salario30=f.valor; }
+    else if(lbl.includes('meta de investimento')){ cfg.metaInvestimento=f.valor; }
+    else { clean.push(f); }
+  }
+  cfg.fixos = clean;
+  cfg.salarioTotal = (cfg.salario15||0)+(cfg.salario30||0);
+  cfg.totalFixos   = clean.reduce(function(s,x){return s+x.valor;},0);
+  if(!cfg.nomesFatura || !cfg.nomesFatura.length) cfg.nomesFatura = NOMES_PADRAO.slice();
+  return cfg;
+}
+
+async function refresh(){
+  var btn = document.getElementById('btn-refresh');
+  btn.classList.add('spinning');
+  await init();
+  btn.classList.remove('spinning');
+}
+
+async function init(){
+  load(true);
+  try {
+    var res = await callAPI('all');
+    if(res.error) throw new Error(res.error);
+    D.hist = (res.historico||[]).map(function(m){ m.mesAno=parseMesAno(m.mesAno); return m; })
+              .sort(function(a,b){ return toDate(a.mesAno)-toDate(b.mesAno); });
+    D.cfg  = fixCfg(res.config) || D.cfg;
+
+    var cur = mesAnoAtual();
+    var hasCur = D.hist.some(function(m){ return m.mesAno===cur; });
+    if(!hasCur){
+      var sal = D.cfg.salarioTotal||0, fix = D.cfg.totalFixos||0;
+      D.hist.push({ mesAno:cur, salario:sal, fixosInvest:fix,
+        nubank:0, xp:0, btg:0, pixDebito:0, totalFaturas:0, saldo:sal-fix, isNew:true });
+    }
+    D.idx = D.hist.findIndex(function(m){ return m.mesAno===cur; });
+    if(D.idx<0) D.idx = D.hist.length-1;
+
+    renderResumo(); renderHist(); renderCfg();
+    document.getElementById('dot').style.cssText = 'width:8px;height:8px;border-radius:50%;background:#00c896;box-shadow:0 0 8px #00c896';
+  } catch(e){
+    toast('Erro ao carregar: '+e.message,'err');
+    document.getElementById('dot').style.cssText = 'width:8px;height:8px;border-radius:50%;background:#ff4d6d;box-shadow:0 0 8px #ff4d6d';
+  }
+  load(false);
+}
+
+function renderResumo(){
+  var h = D.hist, i = D.idx;
+  if(!h.length) return;
+  var m = h[i];
+  var ns = nomes();
+
+  document.getElementById('r-titulo').textContent = full(m.mesAno);
+  document.getElementById('r-sub').textContent = m.isNew ? 'Mês atual — aguardando lançamento' : '';
+  document.getElementById('btn-prev').disabled = i<=0;
+  document.getElementById('btn-next').disabled = i>=h.length-1;
+
+  var sal   = m.salario     || D.cfg.salarioTotal || 0;
+  var fix   = m.fixosInvest || D.cfg.totalFixos   || 0;
+  var fat   = m.totalFaturas || 0;
+  var saldo = (m.saldo !== undefined) ? m.saldo : sal-fix-fat;
+
+  document.getElementById('r-sal').textContent   = R(sal);
+  document.getElementById('r-fix').textContent   = R(fix);
+  document.getElementById('r-fat').textContent   = R(fat);
+  document.getElementById('r-saldo').textContent = R(saldo);
+
+  document.getElementById('lbl-f1').textContent = ns[0]; document.getElementById('r-f1').textContent = R(m.nubank);
+  document.getElementById('lbl-f2').textContent = ns[1]; document.getElementById('r-f2').textContent = R(m.xp);
+  document.getElementById('lbl-f3').textContent = ns[2]; document.getElementById('r-f3').textContent = R(m.btg);
+  document.getElementById('lbl-f4').textContent = ns[3]; document.getElementById('r-f4').textContent = R(m.pixDebito);
+
+  var sc = document.getElementById('r-saldo-card');
+  sc.className = 's-item wide '+(saldo>=0?'pos':'neg');
+
+  drawPie(fix, fat, saldo);
+  document.getElementById('l-fix').textContent   = R(fix);
+  document.getElementById('l-fat').textContent   = R(fat);
+  var lSaldo = document.getElementById('l-saldo');
+  lSaldo.textContent = R(saldo);
+  lSaldo.style.color = saldo < 0 ? 'var(--red)' : '';
+
+  var total = fix+fat;
+  var pct   = sal>0 ? Math.min(100,Math.round(total/sal*100)) : 0;
+  var fill  = document.getElementById('prog-fill');
+  fill.style.width = pct+'%';
+  fill.style.background = pct<70 ? 'var(--green)' : pct<90 ? 'var(--orange)' : 'var(--red)';
+  document.getElementById('prog-pct').textContent = pct+'%';
+
+  var cmp = document.getElementById('comp');
+  if(i>0){
+    var prev = h[i-1];
+    var df   = fat - (prev.totalFaturas||0);
+    var pp   = prev.totalFaturas>0 ? Math.round(Math.abs(df)/prev.totalFaturas*100) : null;
+    var sign = df>0?'+':'';
+    var cls  = df>0?'up':df<0?'dn':'eq';
+    var arr  = df>0?'&#8593;':df<0?'&#8595;':'&#8594;';
+    var ptxt = pp!==null ? sign+pp+'%' : (df===0?'igual':'—');
+    cmp.innerHTML = '<span class="badge '+cls+'">'+arr+' '+ptxt+'</span> em faturas vs '+full(prev.mesAno);
+  } else { cmp.innerHTML = ''; }
+}
+
+function navMes(d){ var ni=D.idx+d; if(ni<0||ni>=D.hist.length) return; D.idx=ni; renderResumo(); }
+
+function drawPie(fix, fat, saldo){
+  var svg = document.getElementById('pie');
+  var cx=70, cy=70, RO=58, RI=36;
+  var overspent = saldo < 0;
+  var base = fix + fat + (overspent ? 0 : saldo);
+
+  if(base<=0){
+    svg.innerHTML='<circle cx="70" cy="70" r="47" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="22"/>'
+      +'<text x="70" y="74" text-anchor="middle" fill="rgba(255,255,255,0.2)" font-size="11">Sem dados</text>';
+    return;
+  }
+
+  var slices = [];
+  if(fix>0)              slices.push({v:fix/base, c:'#1661b8'});
+  if(fat>0)              slices.push({v:fat/base, c: overspent?'#9333ea':'#6b21e8'});
+  if(!overspent&&saldo>0) slices.push({v:saldo/base, c:'#00c896'});
+
+  var GAP = slices.length>1 ? 2 : 0;
+  var html = '<circle cx="70" cy="70" r="47" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="22"/>';
+  var angle = -90;
+
+  function pt(a,r){ var rad=a*Math.PI/180; return {x:cx+r*Math.cos(rad), y:cy+r*Math.sin(rad)}; }
+
+  for(var k=0; k<slices.length; k++){
+    var sl = slices[k];
+    var sweep = sl.v*360 - GAP;
+    if(sweep<0.5) continue;
+    var a1=angle, a2=angle+sweep;
+    var p1o=pt(a1,RO), p2o=pt(a2,RO), p1i=pt(a2,RI), p2i=pt(a1,RI);
+    var large=sweep>180?1:0;
+    html += '<path d="M '+p1o.x.toFixed(2)+' '+p1o.y.toFixed(2)
+      +' A '+RO+' '+RO+' 0 '+large+' 1 '+p2o.x.toFixed(2)+' '+p2o.y.toFixed(2)
+      +' L '+p1i.x.toFixed(2)+' '+p1i.y.toFixed(2)
+      +' A '+RI+' '+RI+' 0 '+large+' 0 '+p2i.x.toFixed(2)+' '+p2i.y.toFixed(2)
+      +' Z" fill="'+sl.c+'"/>';
+    angle += sl.v*360;
+  }
+
+  if(overspent){
+    var absV=Math.abs(saldo);
+    var valStr=absV>=1000?'R$'+(absV/1000).toFixed(1)+'k':'R$'+absV.toFixed(0);
+    html+='<text x="70" y="65" text-anchor="middle" fill="#f87171" font-size="11" font-weight="700">Excedido</text>';
+    html+='<text x="70" y="82" text-anchor="middle" fill="#f87171" font-size="14" font-weight="700">'+valStr+'</text>';
+  } else {
+    var pctFat=Math.round((fat/base)*100);
+    html+='<text x="70" y="65" text-anchor="middle" fill="white" font-size="18" font-weight="700">'+pctFat+'%</text>';
+    html+='<text x="70" y="81" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="10">Faturas</text>';
+  }
+  svg.innerHTML=html;
+}
+
+function renderHist(){
+  var el = document.getElementById('hist-list');
+  if(!D.hist.length){
+    el.innerHTML='<div class="empty"><div class="ico">&#128203;</div><p>Nenhum registro ainda</p></div>';
+    return;
+  }
+  var ns  = nomes();
+  var rev = D.hist.slice().reverse();
+  var html = '';
+  for(var i=0; i<rev.length; i++){
+    var m  = rev[i];
+    var ri = D.hist.length-1-i;
+    var saldo = (m.saldo!==undefined) ? m.saldo : (m.salario||0)-(m.fixosInvest||0)-(m.totalFaturas||0);
+    var sc = saldo>=0?'pos':'neg';
+    html += '<div class="h-item" id="hi-'+ri+'" onclick="toggleEdit('+ri+')">'
+      +'<div class="h-hdr">'
+      +'<div><span class="h-mes">'+full(m.mesAno)+'</span>'+(m.isNew?'<span class="new-badge">NOVO</span>':'')+'</div>'
+      +'<span class="h-saldo '+sc+'">'+R(saldo)+'</span>'
+      +'</div>'
+      +'<div class="h-grid">'
+      +'<div class="h-cell"><div class="d-lbl">'+esc(ns[0])+'</div><div class="d-val">'+R(m.nubank)+'</div></div>'
+      +'<div class="h-cell"><div class="d-lbl">'+esc(ns[1])+'</div><div class="d-val">'+R(m.xp)+'</div></div>'
+      +'<div class="h-cell"><div class="d-lbl">'+esc(ns[2])+'</div><div class="d-val">'+R(m.btg)+'</div></div>'
+      +'<div class="h-cell"><div class="d-lbl">'+esc(ns[3])+'</div><div class="d-val">'+R(m.pixDebito)+'</div></div>'
+      +'</div>'
+      +'<div class="e-form" id="ef-'+ri+'">'
+      +'<div class="f-row"><label>'+esc(ns[0])+'</label><input type="number" id="en-'+ri+'" value="'+(m.nubank||0)+'" inputmode="decimal" onclick="event.stopPropagation()"></div>'
+      +'<div class="f-row"><label>'+esc(ns[1])+'</label><input type="number" id="ex-'+ri+'" value="'+(m.xp||0)+'" inputmode="decimal" onclick="event.stopPropagation()"></div>'
+      +'<div class="f-row"><label>'+esc(ns[2])+'</label><input type="number" id="eb-'+ri+'" value="'+(m.btg||0)+'" inputmode="decimal" onclick="event.stopPropagation()"></div>'
+      +'<div class="f-row"><label>'+esc(ns[3])+'</label><input type="number" id="ep-'+ri+'" value="'+(m.pixDebito||0)+'" inputmode="decimal" onclick="event.stopPropagation()"></div>'
+      +'<button class="btn btn-primary" onclick="event.stopPropagation();saveMes('+ri+')">Salvar</button>'
+      +'<button class="btn btn-ghost" onclick="event.stopPropagation();toggleEdit('+ri+')">Cancelar</button>'
+      +'</div>'
+      +'</div>';
+  }
+  el.innerHTML = html;
+}
+
+function toggleEdit(ri){
+  if(D.openEdit!==null && D.openEdit!==ri){
+    var prev = document.getElementById('ef-'+D.openEdit);
+    var prevI = document.getElementById('hi-'+D.openEdit);
+    if(prev){ prev.classList.remove('open'); }
+    if(prevI){ prevI.classList.remove('editing'); }
+  }
+  var form = document.getElementById('ef-'+ri);
+  var item = document.getElementById('hi-'+ri);
+  var opening = !form.classList.contains('open');
+  form.classList.toggle('open', opening);
+  item.classList.toggle('editing', opening);
+  D.openEdit = opening ? ri : null;
+  if(opening){
+    setTimeout(function(){ form.querySelector('input').focus(); item.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 120);
+  }
+}
+
+async function saveMes(ri){
+  var m   = D.hist[ri];
+  var nu  = parseFloat(document.getElementById('en-'+ri).value)||0;
+  var xp  = parseFloat(document.getElementById('ex-'+ri).value)||0;
+  var btg = parseFloat(document.getElementById('eb-'+ri).value)||0;
+  var pix = parseFloat(document.getElementById('ep-'+ri).value)||0;
+
+  var sal   = D.cfg.salarioTotal   || m.salario     || 0;
+  var fix   = D.cfg.totalFixos     || m.fixosInvest || 0;
+  var fat   = nu+xp+btg+pix;
+  var saldo = sal-fix-fat;
+
+  var payload = { mesAno:m.mesAno, salario:sal, fixosInvest:fix,
+    nubank:nu, xp:xp, btg:btg, pixDebito:pix, totalFaturas:fat, saldo:saldo };
+  load(true);
+  try {
+    var res = await callAPI('save_mes', payload);
+    if(res.error) throw new Error(res.error);
+    D.hist[ri] = Object.assign({}, m, payload, {isNew:false});
+    D.openEdit = null;
+    renderHist(); renderResumo();
+    toast('Salvo com sucesso!','ok');
+  } catch(e){ toast('Erro: '+e.message,'err'); }
+  load(false);
+}
+
+function renderCfg(){
+  var ns = nomes();
+  document.getElementById('c-sal15').value = D.cfg.salario15||0;
+  document.getElementById('c-sal30').value = D.cfg.salario30||0;
+  document.getElementById('c-meta').value  = D.cfg.metaInvestimento||0;
+  document.getElementById('c-fat1').value  = ns[0];
+  document.getElementById('c-fat2').value  = ns[1];
+  document.getElementById('c-fat3').value  = ns[2];
+  document.getElementById('c-fat4').value  = ns[3];
+  renderFixos(D.cfg.fixos||[]);
+}
+
+function renderFixos(fixos){
+  var html = '';
+  for(var i=0; i<fixos.length; i++){
+    var f = fixos[i];
+    html += '<div class="fixo-row">'
+      +'<input type="text" value="'+esc(f.descricao||'')+'" placeholder="Descrição" oninput="D.cfg.fixos['+i+'].descricao=this.value">'
+      +'<input type="number" value="'+(f.valor||0)+'" placeholder="0,00" inputmode="decimal" oninput="D.cfg.fixos['+i+'].valor=parseFloat(this.value)||0">'
+      +'<button class="btn-rm" onclick="rmFixo('+i+')">&times;</button>'
+      +'</div>';
+  }
+  document.getElementById('fixos-list').innerHTML = html;
+}
+
+function addFixo(){
+  if(!D.cfg.fixos) D.cfg.fixos=[];
+  D.cfg.fixos.push({descricao:'',valor:0});
+  renderFixos(D.cfg.fixos);
+  var rows = document.querySelectorAll('.fixo-row');
+  if(rows.length) rows[rows.length-1].querySelector('input').focus();
+}
+
+function rmFixo(i){ D.cfg.fixos.splice(i,1); renderFixos(D.cfg.fixos); }
+
+async function saveConfig(){
+  var sal15 = parseFloat(document.getElementById('c-sal15').value)||0;
+  var sal30 = parseFloat(document.getElementById('c-sal30').value)||0;
+  var meta  = parseFloat(document.getElementById('c-meta').value)||0;
+  var fixos = (D.cfg.fixos||[]).filter(function(f){ return f.descricao && f.valor>0; });
+  var fat1  = document.getElementById('c-fat1').value.trim() || NOMES_PADRAO[0];
+  var fat2  = document.getElementById('c-fat2').value.trim() || NOMES_PADRAO[1];
+  var fat3  = document.getElementById('c-fat3').value.trim() || NOMES_PADRAO[2];
+  var fat4  = document.getElementById('c-fat4').value.trim() || NOMES_PADRAO[3];
+  var nomesFatura = [fat1, fat2, fat3, fat4];
+
+  load(true);
+  try {
+    var res = await callAPI('save_config',{salario15:sal15, salario30:sal30, metaInvestimento:meta, fixos:fixos, nomesFatura:nomesFatura});
+    if(res.error) throw new Error(res.error);
+    D.cfg = { salario15:sal15, salario30:sal30, metaInvestimento:meta, fixos:fixos, nomesFatura:nomesFatura,
+      salarioTotal:sal15+sal30, totalFixos:fixos.reduce(function(s,f){return s+f.valor;},0) };
+    renderResumo(); renderHist();
+    toast('Configuração salva!','ok');
+  } catch(e){ toast('Erro: '+e.message,'err'); }
+  load(false);
+}
+
+function addProximoMes(){
+  var ultimo = D.hist[D.hist.length-1];
+  if(!ultimo){ toast('Nenhum mês existente ainda','inf'); return; }
+  var p = ultimo.mesAno.split('/');
+  var m = MES.indexOf(p[0]), y = parseInt(p[1]);
+  m++; if(m>=12){ m=0; y++; }
+  var prox = MES[m]+'/'+y;
+  if(D.hist.some(function(h){ return h.mesAno===prox; })){
+    toast('Já existe entrada para '+full(prox),'inf'); return;
+  }
+  var sal=D.cfg.salarioTotal||0, fix=D.cfg.totalFixos||0;
+  D.hist.push({ mesAno:prox, salario:sal, fixosInvest:fix,
+    nubank:0, xp:0, btg:0, pixDebito:0, totalFaturas:0, saldo:sal-fix, isNew:true });
+  renderHist();
+  toast(full(prox)+' adicionado','ok');
+}
+
+function go(tab){
+  ['resumo','hist','cfg'].forEach(function(t){
+    document.getElementById('s-'+t).classList.toggle('on', t===tab);
+    document.getElementById('tb-'+t).classList.toggle('on', t===tab);
+  });
+}
+
+function load(v){ document.getElementById('loader').classList.toggle('on',v); }
+
+var _tt;
+function toast(msg,type){
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast on '+(type||'inf');
+  clearTimeout(_tt);
+  _tt = setTimeout(function(){ el.classList.remove('on'); }, 3200);
+}
+
+init();
+</script>
+</body>
+</html>
