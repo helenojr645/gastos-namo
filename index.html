@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Gastos">
-<meta name="theme-color" content="#080c18">
+<meta name="theme-color" content="#130a0e">
 <title>Gastos</title>
 <link rel="apple-touch-icon" id="ati">
 <script>
@@ -16,7 +16,7 @@
     var c=document.createElement('canvas'); c.width=c.height=180;
     var x=c.getContext('2d');
     var g=x.createLinearGradient(0,0,180,180);
-    g.addColorStop(0,'#0d1e42'); g.addColorStop(1,'#1661b8');
+    g.addColorStop(0,'#2d0a18'); g.addColorStop(1,'#a8335a');
     x.fillStyle=g; x.fillRect(0,0,180,180);
     x.fillStyle='rgba(255,255,255,0.1)';
     x.beginPath(); x.arc(160,20,90,0,Math.PI*2); x.fill();
@@ -28,11 +28,11 @@
 </script>
 <style>
 :root {
-  --bg:     #080c18;
+  --bg:     #130a0e;
   --glass:  rgba(255,255,255,0.05);
   --glass-b:rgba(255,255,255,0.10);
-  --blue:   #1661b8;
-  --blue-l: #2478d4;
+  --blue:   #a8335a;
+  --blue-l: #d84a7a;
   --purple: #6b21e8;
   --green:  #00c896;
   --red:    #ff4d6d;
@@ -52,9 +52,9 @@ body{
 body::before{
   content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   background:
-    radial-gradient(ellipse 60% 50% at 15% 10%,rgba(22,97,184,.18) 0%,transparent 100%),
-    radial-gradient(ellipse 50% 40% at 85% 85%,rgba(0,200,150,.08) 0%,transparent 100%),
-    radial-gradient(ellipse 40% 60% at 50% 50%,rgba(107,33,232,.06) 0%,transparent 100%);
+    radial-gradient(ellipse 60% 50% at 15% 10%,rgba(216,74,122,.18) 0%,transparent 100%),
+    radial-gradient(ellipse 50% 40% at 85% 85%,rgba(216,74,122,.07) 0%,transparent 100%),
+    radial-gradient(ellipse 40% 60% at 50% 50%,rgba(180,50,100,.05) 0%,transparent 100%);
 }
 .app{position:relative;z-index:1;max-width:480px;margin:0 auto;padding-bottom:calc(var(--tab-h) + var(--sab) + 8px)}
 
@@ -129,7 +129,7 @@ body::before{
   padding:16px;margin-bottom:10px;cursor:pointer;transition:border-color .2s,transform .1s;
 }
 .h-item:active{transform:scale(.99)}
-.h-item.editing{border-color:rgba(36,120,212,.45);background:rgba(22,97,184,.06)}
+.h-item.editing{border-color:rgba(216,74,122,.45);background:rgba(168,51,90,.06)}
 .h-hdr{display:flex;justify-content:space-between;align-items:flex-start}
 .h-mes{font-size:16px;font-weight:600}
 .h-saldo{font-size:16px;font-weight:700}
@@ -194,7 +194,7 @@ body::before{
   position:fixed;bottom:0;left:0;right:0;
   height:calc(var(--tab-h) + var(--sab));
   padding-bottom:var(--sab);padding-top:8px;
-  background:rgba(8,12,24,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  background:rgba(19,10,14,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
   border-top:1px solid rgba(255,255,255,.07);display:flex;z-index:100;
 }
 .tab-btn{
@@ -208,7 +208,7 @@ body::before{
 /* loader */
 .loader{
   display:none;position:fixed;inset:0;
-  background:rgba(8,12,24,.7);backdrop-filter:blur(6px);
+  background:rgba(19,10,14,.7);backdrop-filter:blur(6px);
   z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:14px;
 }
 .loader.on{display:flex}
@@ -230,7 +230,7 @@ body::before{
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.ok{background:rgba(0,200,150,.9);color:#fff}
 .toast.err{background:rgba(255,77,109,.9);color:#fff}
-.toast.inf{background:rgba(22,97,184,.9);color:#fff}
+.toast.inf{background:rgba(168,51,90,.9);color:#fff}
 
 .empty{text-align:center;padding:48px 24px;color:var(--muted)}
 .empty .ico{font-size:36px;margin-bottom:12px}
@@ -288,7 +288,7 @@ body::before{
           <svg id="pie" width="140" height="140" viewBox="0 0 140 140" style="flex-shrink:0"></svg>
           <div class="chart-legend">
             <div class="leg-item">
-              <div class="leg-dot" style="background:#1661b8"></div>
+              <div class="leg-dot" style="background:#a8335a"></div>
               <div><div class="leg-lbl">Fixos</div><div class="leg-val" id="l-fix">R$ 0</div></div>
             </div>
             <div class="leg-item">
@@ -549,7 +549,7 @@ function drawPie(fix, fat, saldo){
   }
 
   var slices = [];
-  if(fix>0)              slices.push({v:fix/base, c:'#1661b8'});
+  if(fix>0)              slices.push({v:fix/base, c:'#a8335a'});
   if(fat>0)              slices.push({v:fat/base, c: overspent?'#9333ea':'#6b21e8'});
   if(!overspent&&saldo>0) slices.push({v:saldo/base, c:'#00c896'});
 
